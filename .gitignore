@@ -1,0 +1,22 @@
+# Build/IDE
+**/bin/
+**/obj/
+.vs/
+.idea/
+*.user
+*.suo
+*.cache
+
+# Credentials, local configs
+**/appsettings.json
+**/appsettings.Development.json
+**/appsettings.Production.json
+.env
+.env.*
+**/secrets.json
+
+# Logs/local DBs
+*.log
+*.mdf
+*.ldf
+*.db
