@@ -1,0 +1,128 @@
+name: FitLife SQL Server and browser verification
+
+on:
+  push:
+    branches: [verification/sql-browser-20261022]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sql-browser-verification:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+      DOTNET_NOLOGO: '1'
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://127.0.0.1:5080
+    steps:
+      - name: Checkout isolated verification branch
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Install .NET 8 SDK
+        id: sdk
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9
+        with:
+          dotnet-version: '8.0.x'
+      - name: Pin installed SDK and prepare evidence directory
+        env:
+          SDK_VERSION: ${{ steps.sdk.outputs.dotnet-version }}
+        run: |
+          mkdir -p validation-artifacts
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          Path('global.json').write_text(json.dumps({'sdk':{'version':os.environ['SDK_VERSION']}}))
+          PY
+          dotnet --info > validation-artifacts/dotnet-info.txt
+      - name: Create one-run disposable database credentials
+        run: |
+          python3 - <<'PY'
+          import os, secrets
+          password = 'FlTest9!' + secrets.token_hex(20)
+          print('::add-mask::' + password)
+          with open(os.environ['GITHUB_ENV'], 'a') as f:
+              f.write('MSSQL_SA_PASSWORD=' + password + '\n')
+          PY
+      - name: Start isolated SQL Server 2022
+        run: |
+          docker run --detach --name fitlife-sql --memory=3g \
+            --publish 127.0.0.1:1433:1433 \
+            --env ACCEPT_EULA=Y --env MSSQL_PID=Developer \
+            --env MSSQL_MEMORY_LIMIT_MB=2048 --env MSSQL_SA_PASSWORD \
+            mcr.microsoft.com/mssql/server:2022-latest
+          docker image inspect mcr.microsoft.com/mssql/server:2022-latest \
+            --format '{{json .RepoDigests}}' > validation-artifacts/sql-image-digest.json
+          ready=0
+          for attempt in $(seq 1 60); do
+            if docker exec --env SQLCMDPASSWORD="$MSSQL_SA_PASSWORD" fitlife-sql \
+              /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -C -b -Q 'SELECT 1' >/dev/null 2>&1; then
+              ready=1; break
+            fi
+            sleep 2
+          done
+          if [ "$ready" -ne 1 ]; then
+            docker logs fitlife-sql
+            exit 1
+          fi
+          docker exec --interactive --env SQLCMDPASSWORD="$MSSQL_SA_PASSWORD" fitlife-sql \
+            /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -C -b \
+            < verification/sql-browser/schema.sql
+      - name: Install browser and SQL test dependencies
+        run: |
+          python3 -m venv "$RUNNER_TEMP/fitlife-venv"
+          "$RUNNER_TEMP/fitlife-venv/bin/pip" install --disable-pip-version-check playwright pymssql
+          "$RUNNER_TEMP/fitlife-venv/bin/python" -m playwright install --with-deps chromium
+          sudo apt-get install -y fonts-noto-cjk
+          "$RUNNER_TEMP/fitlife-venv/bin/pip" freeze > validation-artifacts/python-dependencies.txt
+          "$RUNNER_TEMP/fitlife-venv/bin/python" -m py_compile verification/sql-browser/verify.py
+      - name: Restore and build original application
+        run: |
+          set -euo pipefail
+          dotnet restore MVC_Homework.sln 2>&1 | tee validation-artifacts/restore.log
+          dotnet build MVC_Homework.sln --configuration Release --no-restore 2>&1 | tee validation-artifacts/build.log
+      - name: Execute real SQL persistence, browser and security-boundary checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          export ConnectionStrings__DefaultConnection="Server=127.0.0.1,1433;Database=FitLifeVerification;User Id=sa;Password=${MSSQL_SA_PASSWORD};Encrypt=True;TrustServerCertificate=True;"
+          echo "::add-mask::${ConnectionStrings__DefaultConnection}"
+          dotnet run --project MVC_Homework/MVC_Homework.csproj --configuration Release --no-build --no-launch-profile \
+            > "$RUNNER_TEMP/fitlife-app.log" 2>&1 &
+          APP_PID=$!
+          trap 'kill "$APP_PID" 2>/dev/null || true' EXIT
+          ready=0
+          for attempt in $(seq 1 45); do
+            if curl --silent --fail http://127.0.0.1:5080/Login/Index >/dev/null; then ready=1; break; fi
+            sleep 1
+          done
+          if [ "$ready" -ne 1 ]; then
+            echo 'Application failed to accept HTTP requests'
+            cat "$RUNNER_TEMP/fitlife-app.log"
+            exit 1
+          fi
+          "$RUNNER_TEMP/fitlife-venv/bin/python" verification/sql-browser/verify.py 2>&1 | tee validation-artifacts/verification.log
+      - name: Publish accurate summary
+        if: always()
+        run: |
+          if [ -f validation-artifacts/REPORT.md ]; then
+            cat validation-artifacts/REPORT.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo 'Verification did not finish: inspect setup/build steps. No pass result may be inferred.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+          echo '' >> "$GITHUB_STEP_SUMMARY"
+          echo 'No production deployment or production data access occurred. The application source was not changed.' >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload synthetic-test evidence and real browser screenshots
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: fitlife-sql-browser-evidence
+          path: validation-artifacts/
+          retention-days: 14
+          if-no-files-found: warn
+      - name: Remove disposable SQL Server
+        if: always()
+        run: docker rm --force fitlife-sql || true
