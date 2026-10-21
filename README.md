@@ -4,15 +4,15 @@
 
 以 C#、ASP.NET Core MVC 與 SQL Server 製作的飲食及運動紀錄網站。專案練習 MVC 分層、Entity Framework Core 資料存取、Razor 頁面與 Chart.js 圖表，包含紀錄的新增、查詢、編輯及刪除程式。
 
-**驗證摘要：** 2026-10-21 已通過套件還原、Release 編譯、網站啟動與 8 項 HTTP 基本檢查。這次檢查未涵蓋 SQL Server 實際讀寫、瀏覽器圖表或完整安全性測試。
+**最新驗證：** 2026-10-22（臺灣時間）已在隔離 SQL Server 與 Chromium 完成實測。35 項檢查中 26 項通過、9 項未通過；正常資料 CRUD 與圖表數值已驗證，但編輯／分頁、存取權限及輸入驗證仍有待修正問題。
 
-[驗證結果與範圍](docs/VERIFICATION.md) · [GitHub Actions 執行紀錄](https://github.com/z1oyi0/fitlife-Mvc/actions/runs/39611972925) · [已知限制與安全說明](SECURITY_NOTES.md)
+[SQL 與瀏覽器實測報告](docs/SQL_BROWSER_VERIFICATION.md) · [本次 Actions 紀錄](https://github.com/z1oyi0/fitlife-Mvc/actions/runs/39666969329) · [先前編譯驗證](docs/VERIFICATION.md) · [安全說明](SECURITY_NOTES.md)
 
-> 本儲存庫提供課程作品原始碼與技術說明，並非公開運作的線上服務；正式部署前仍須補強權限控制與完成整合測試。
+> 本儲存庫提供課程作品原始碼與技術說明，不是公開運作的線上服務。尚未正式部署，不能將部分功能測試通過視為全面安全或可直接上線。
 
 ## 個人實作範圍
 
-此專案為個人課程作品，內容包含飲食與運動紀錄的 MVC 頁面、資料模型、資料操作與熱量呈現。下列入口對應目前保留的程式碼；功能的實作範圍與已執行的測試分開說明。
+此專案為個人課程作品，內容包含飲食與運動紀錄的 MVC 頁面、資料模型、資料操作與熱量呈現。下列入口對應目前保留的程式碼；課程實作與後續 AI 輔助驗證的範圍分開記錄。
 
 ## 功能與程式入口
 
@@ -58,25 +58,32 @@ MVC_Homework/
 
 | 項目 | 狀態 |
 |---|---|
-| NuGet 套件還原 | 通過 |
-| Release 編譯（含 Razor） | 通過；該次編譯為 0 個警告、0 個錯誤 |
-| 網站啟動、登入頁、靜態 CSS、示範登入及登出、首頁、新增表單 | 8 項 HTTP 基本檢查通過 |
-| SQL Server 連線、資料新增／修改／刪除、查詢結果正確性 | 未納入上述測試 |
-| Chart.js 瀏覽器繪製、數值正確性、操作截圖 | 未納入上述測試 |
-| 正式部署及完整安全性驗證 | 尚未完成 |
+| NuGet 套件還原、Release 編譯 | 通過；當次編譯摘要 0 警告、0 錯誤 |
+| SQL Server 連線、飲食及運動正常 CRUD | 隔離測試資料庫實測通過；未連原學校／正式資料庫 |
+| 查詢結果、分頁與熱量 | 一般條件查詢、基本分頁與頁面小計通過；搜尋後翻頁、頁碼防呆與編輯餐別仍有問題 |
+| Chart.js 瀏覽器繪製與數值 | 測試的日期與 180／260／320 kcal 均與 SQL Server 一致，查詢及空資料圖表通過 |
+| 真實操作截圖 | 已擷取；正常動畫模式的整頁圖表完整，停用動畫的截圖有異常，詳見報告 |
+| 基礎安全與輸入驗證 | 發現未登入讀寫、無權杖寫入、GET 刪除及無效數字／負值處理問題，未通過 |
+| 正式部署與全面安全性驗證 | 未部署；目前不得視為可安全對外服務 |
 
-測試執行於獨立驗證分支，應用程式碼與整理後的課程版本相同；不是對所有功能的測試保證。完整項目、測試版本及來源見 [驗證紀錄](docs/VERIFICATION.md)。
+完整結果、失敗案例、測試程式及版本見 [SQL Server 與瀏覽器實測報告](docs/SQL_BROWSER_VERIFICATION.md)。這些結果只代表指定測試資料與環境，不是所有輸入、瀏覽器或安全情境的保證。Actions 顯示 failure 是因為檢查確實發現問題，並非忽略失敗後標示成功。
+
+## 操作畫面與測試附件
+
+[本次執行頁面](https://github.com/z1oyi0/fitlife-Mvc/actions/runs/39666969329) 的 `fitlife-sql-browser-evidence` 附件包含實際瀏覽器截圖、逐項 JSON 結果、查詢資料比對與編譯紀錄；不是以生成圖片模擬執行結果。附件保留 14 天，下載可能需要登入 GitHub。
+
+建議查看 `01-home.png`、`03-meal-list.png`、`04-meal-edit.png` 與 `chart-fullpage-allow.png`。所有顯示的飲食及運動內容都是測試資料。
 
 ## 本機執行
 
 ### 準備環境與資料庫
 
-需要 .NET 8 SDK，以及自己的 SQL Server 測試資料庫。目前未提供資料庫備份、建表 SQL 或種子資料；資料庫操作前須先依下列模型建立相符的資料表，不能只啟動網站就視為完成資料庫設定。
+需要 .NET 8 SDK 及自己的 SQL Server 測試資料庫。[隔離驗證用建表 SQL](https://github.com/z1oyi0/fitlife-Mvc/blob/6b56bd728eb8a2ef3e37b88e5552b6cebe728206/verification/sql-browser/schema.sql) 依 C# 模型重建兩張表，僅用於全新的 `FitLifeVerification` 測試資料庫，不是原資料庫備份，也不要對既有正式資料庫執行。
 
 - [MealRecord.cs](MVC_Homework/Models/MealRecord.cs)：對應 `TableMealRecords1132024`。
 - [ExerciseRecord.cs](MVC_Homework/Models/ExerciseRecord.cs)：對應 `TableExerciseRecords1132024`。
 
-資料表名稱保留課程原有命名。不要使用正式環境的帳號、密碼或個人健康資料進行展示。
+資料表名稱保留課程原有命名。不要使用正式環境帳密或個人健康資料進行展示；CI 的一次性容器設定也不代表正式環境已完成權限規劃。
 
 ### 還原與編譯
 
@@ -89,7 +96,7 @@ dotnet build MVC_Homework.sln --configuration Release --no-restore
 
 ### 設定本機連線並啟動
 
-以下以 Windows PowerShell 為例。連線字串中的 `YOUR_...` 均為佔位字，須改成自己的本機測試設定；這不是可直接使用的連線憑證。
+以下以 Windows PowerShell 為例。連線字串中的 `YOUR_...` 均為佔位字，須改成自己的本機測試設定：
 
 ```powershell
 cd MVC_Homework
@@ -99,10 +106,10 @@ $env:ASPNETCORE_ENVIRONMENT = "Development"
 dotnet run --configuration Release --no-launch-profile --urls "http://127.0.0.1:5080"
 ```
 
-在瀏覽器開啟 `http://127.0.0.1:5080/Login/Index`。示範登入設定見登入控制器；僅供本機課程測試，不可沿用於正式服務。完成資料表設定前，飲食與運動清單或寫入操作可能失敗。
+在瀏覽器開啟 `http://127.0.0.1:5080/Login/Index`。示範登入設定見登入控制器；僅供本機測試，不可沿用於正式服務。完成資料表設定前，飲食與運動清單或寫入操作可能失敗。
 
 ## 已知限制與後續改善
 
-目前登入為示範流程，資料操作的授權檢查、防 CSRF、刪除方法、表單驗證及資料庫整合測試仍須補強。公開原始碼不代表網站已安全部署；詳細範圍見 [安全性與限制](SECURITY_NOTES.md)。
+優先修正資料操作的驗證與授權、防 CSRF、GET 刪除及伺服器端輸入驗證，再處理餐別綁定、分頁搜尋條件與頁碼檢查；修正後應重跑同一套測試。詳細結果見 [實測報告](docs/SQL_BROWSER_VERIFICATION.md) 與 [安全說明](SECURITY_NOTES.md)。
 
-後續重點是補齊可重建的測試資料庫、驗證 CRUD 與統計結果，再記錄真實瀏覽器操作畫面。本次文件更新沒有變更應用程式功能。
+本輪新增驗證與更新文件，沒有修改應用程式功能，也不宣稱上述問題已修好。
