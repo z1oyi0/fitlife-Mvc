@@ -1,0 +1,104 @@
+﻿@{
+    ViewData["Title"] = "FitLife";
+}
+
+<style>
+    body {
+        background-color: #F4F1EE;
+        color: #4A4A4A;
+    }
+
+    .hero {
+        background-color: #FFFFFF;
+        border-radius: 24px;
+        padding: 45px;
+        box-shadow: 0 8px 22px rgba(0,0,0,0.08);
+        margin-top: 50px;
+        text-align: center;
+    }
+
+    .hero h1 {
+        color: #6B7A75;
+        font-weight: bold;
+    }
+
+    .hero p {
+        color: #777;
+        font-size: 18px;
+    }
+
+    .menu-card {
+        background-color: #FFFFFF;
+        border-radius: 20px;
+        padding: 30px;
+        box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+        text-align: center;
+        transition: 0.3s;
+        height: 100%;
+    }
+
+    .menu-card:hover {
+        transform: translateY(-5px);
+    }
+
+    .card-green {
+        border-top: 8px solid #A7B8A8;
+    }
+
+    .card-pink {
+        border-top: 8px solid #D8B4A0;
+    }
+
+    .btn-morandi-green {
+        background-color: #A7B8A8;
+        color: white;
+        border: none;
+        border-radius: 12px;
+        padding: 10px 20px;
+        text-decoration: none;
+    }
+
+    .btn-morandi-green:hover {
+        background-color: #8FA391;
+        color: white;
+    }
+
+    .btn-morandi-pink {
+        background-color: #D8B4A0;
+        color: white;
+        border: none;
+        border-radius: 12px;
+        padding: 10px 20px;
+        text-decoration: none;
+    }
+
+    .btn-morandi-pink:hover {
+        background-color: #C59B88;
+        color: white;
+    }
+</style>
+
+<div class="container">
+    <div class="hero">
+        <h1>FitLife 健康生活管理系統</h1>
+        <p>記錄健身、飲食與每日健康變化，讓生活更有目標。</p>
+    </div>
+
+    <div class="row mt-5">
+        <div class="col-md-6 mb-4">
+            <div class="menu-card card-green">
+                <h3>健身紀錄</h3>
+                <p>新增、編輯、刪除運動紀錄，並查看熱量變化圖表。</p>
+                <a href="/ExerciseRecords" class="btn-morandi-green">進入健身紀錄</a>
+            </div>
+        </div>
+
+        <div class="col-md-6 mb-4">
+            <div class="menu-card card-pink">
+                <h3>飲食紀錄</h3>
+                <p>記錄每日餐點、餐別與攝取熱量。</p>
+                <a href="/MealRecords" class="btn-morandi-pink">進入飲食紀錄</a>
+            </div>
+        </div>
+    </div>
+</div>

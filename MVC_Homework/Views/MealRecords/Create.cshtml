@@ -1,0 +1,44 @@
+﻿@model MVC_Homework.Models.MealRecord
+
+<div class="container mt-5">
+    <div class="card shadow-sm p-4">
+        <h2 class="mb-4">新增飲食紀錄</h2>
+
+        <form method="post">
+            <div class="mb-3">
+                <label class="form-label">餐別</label>
+                <select name="MealType" class="form-control">
+                    <option value="">請選擇餐別</option>
+                    <option value="早餐">早餐</option>
+                    <option value="午餐">午餐</option>
+                    <option value="晚餐">晚餐</option>
+                    <option value="點心">點心</option>
+                    <option value="宵夜">宵夜</option>
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">食物名稱</label>
+                <input type="text" name="MealName" class="form-control" placeholder="例如：雞胸肉便當、鮭魚飯糰" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">用餐日期</label>
+                <input type="date" name="MealDate" class="form-control" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">熱量</label>
+                <input type="number" name="Calories" class="form-control" placeholder="例如：450" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">備註</label>
+                <input type="text" name="Note" class="form-control" placeholder="例如：少飯、無糖飲料" />
+            </div>
+
+            <button type="submit" class="btn btn-success">送出</button>
+            <a href="/MealRecords" class="btn btn-secondary">回飲食紀錄</a>
+        </form>
+    </div>
+</div>

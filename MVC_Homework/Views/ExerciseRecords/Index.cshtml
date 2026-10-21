@@ -1,0 +1,151 @@
+﻿@model List<MVC_Homework.Models.ExerciseRecord>
+
+@{
+    ViewData["Title"] = "健身紀錄";
+}
+
+<style>
+    body {
+        background-color: #F4F1EE;
+        color: #4A4A4A;
+    }
+
+    .morandi-card {
+        background-color: #FFFFFF;
+        border-radius: 18px;
+        padding: 25px;
+        box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+        margin-bottom: 25px;
+    }
+
+    .title {
+        color: #6B7A75;
+        font-weight: bold;
+    }
+
+    .btn-morandi {
+        background-color: #A7B8A8;
+        color: white;
+        border: none;
+        border-radius: 10px;
+        padding: 8px 16px;
+        text-decoration: none;
+    }
+
+    .btn-morandi:hover {
+        background-color: #8FA391;
+        color: white;
+    }
+
+    .btn-edit {
+        background-color: #D8B4A0;
+        color: white;
+        border-radius: 8px;
+        padding: 5px 10px;
+        text-decoration: none;
+    }
+
+    .btn-delete {
+        background-color: #B97A7A;
+        color: white;
+        border-radius: 8px;
+        padding: 5px 10px;
+        text-decoration: none;
+    }
+
+    table {
+        background-color: white;
+    }
+
+    thead {
+        background-color: #9AA6A1;
+        color: white;
+    }
+</style>
+
+<div class="container mt-5">
+
+    <div class="morandi-card">
+        <h2 class="title">FitLife 健身紀錄</h2>
+        <p>記錄每次運動時間與消耗熱量，觀察自己的健康變化。</p>
+
+        <a href="/ExerciseRecords/Create" class="btn-morandi">新增健身紀錄</a>
+        <a href="/Home/Index" class="btn-morandi">回主畫面</a>
+    </div>
+
+    <div class="morandi-card">
+        <h4 class="title">健身熱量變化圖</h4>
+        <canvas id="exerciseChart"></canvas>
+    </div>
+
+    <div class="morandi-card">
+        <h4 class="title">健身紀錄列表</h4>
+
+        <table class="table table-bordered table-hover">
+            <thead>
+                <tr>
+                    <th>運動名稱</th>
+                    <th>運動日期</th>
+                    <th>時間</th>
+                    <th>熱量</th>
+                    <th>備註</th>
+                    <th>功能</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    <tr>
+                        <td>@item.ExerciseName</td>
+                        <td>@item.ExerciseDate?.ToString("yyyy-MM-dd")</td>
+                        <td>@item.Duration 分鐘</td>
+                        <td>@item.Calories kcal</td>
+                        <td>@item.Note</td>
+                        <td>
+                            <a href="/ExerciseRecords/Edit/@item.Id" class="btn-edit">編輯</a>
+                            <a href="/ExerciseRecords/Delete/@item.Id" class="btn-delete">刪除</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    const labels = [
+        @foreach (var item in Model)
+        {
+            @Html.Raw("'" + item.ExerciseDate?.ToString("MM/dd") + "',")
+        }
+    ];
+
+    const calories = [
+        @foreach (var item in Model)
+        {
+            @Html.Raw(item.Calories + ",")
+        }
+    ];
+
+    new Chart(document.getElementById('exerciseChart'), {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: '消耗熱量 kcal',
+                data: calories,
+                borderColor: '#B97A7A',
+                backgroundColor: 'rgba(185, 122, 122, 0.25)',
+                borderWidth: 3,
+                tension: 0.4,
+                pointBackgroundColor: '#8FA391',
+                pointBorderColor: '#8FA391',
+                pointRadius: 5,
+                fill: true
+            }]
+        }
+    });
+</script>
