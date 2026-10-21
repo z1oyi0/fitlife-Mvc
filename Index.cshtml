@@ -1,0 +1,24 @@
+﻿<div class="container mt-5">
+    <div class="card p-4 shadow-sm">
+        <h2>FitLife 登入</h2>
+
+        <p>測試帳號：admin</p>
+        <p>測試密碼：1234</p>
+
+        <form method="post">
+            <div class="mb-3">
+                <label>帳號</label>
+                <input type="text" name="username" class="form-control" />
+            </div>
+
+            <div class="mb-3">
+                <label>密碼</label>
+                <input type="password" name="password" class="form-control" />
+            </div>
+
+            <button type="submit" class="btn btn-primary">登入</button>
+        </form>
+
+        <p style="color:red">@ViewBag.Error</p>
+    </div>
+</div>
