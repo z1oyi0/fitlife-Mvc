@@ -78,7 +78,7 @@ jobs:
           "$RUNNER_TEMP/fitlife-venv/bin/python" -m playwright install --with-deps chromium
           sudo apt-get install -y fonts-noto-cjk
           "$RUNNER_TEMP/fitlife-venv/bin/pip" freeze > validation-artifacts/python-dependencies.txt
-          "$RUNNER_TEMP/fitlife-venv/bin/python" -m py_compile verification/sql-browser/verify.py
+          "$RUNNER_TEMP/fitlife-venv/bin/python" -m py_compile verification/sql-browser/verify.py verification/sql-browser/chart_visual.py
       - name: Restore and build original application
         run: |
           set -euo pipefail
@@ -104,7 +104,12 @@ jobs:
             cat "$RUNNER_TEMP/fitlife-app.log"
             exit 1
           fi
+          set +e
           "$RUNNER_TEMP/fitlife-venv/bin/python" verification/sql-browser/verify.py 2>&1 | tee validation-artifacts/verification.log
+          TEST_EXIT=${PIPESTATUS[0]}
+          "$RUNNER_TEMP/fitlife-venv/bin/python" verification/sql-browser/chart_visual.py 2>&1 | tee validation-artifacts/chart-visual.log
+          CHART_EXIT=${PIPESTATUS[0]}
+          if [ "$TEST_EXIT" -ne 0 ] || [ "$CHART_EXIT" -ne 0 ]; then exit 1; fi
       - name: Publish accurate summary
         if: always()
         run: |
