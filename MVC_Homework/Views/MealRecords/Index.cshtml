@@ -1,123 +1,26 @@
-﻿@model List<MVC_Homework.Models.MealRecord>
-
-@{
-    ViewData["Title"] = "飲食紀錄";
-}
-
+@model List<MVC_Homework.Models.MealRecord>
+@{ ViewData["Title"] = "飲食紀錄"; }
 <style>
-    body {
-        background-color: #F4F1EE;
-        color: #4A4A4A;
-    }
-
-    .morandi-card {
-        background-color: #FFFFFF;
-        border-radius: 18px;
-        padding: 25px;
-        box-shadow: 0 6px 18px rgba(0,0,0,0.08);
-        margin-bottom: 25px;
-    }
-
-    .title {
-        color: #6B7A75;
-        font-weight: bold;
-    }
-
-    .btn-morandi {
-        background-color: #D8B4A0;
-        color: white;
-        border: none;
-        border-radius: 10px;
-        padding: 8px 16px;
-        text-decoration: none;
-    }
-
-    .btn-morandi:hover {
-        background-color: #C59B88;
-        color: white;
-    }
-
-    .btn-edit {
-        background-color: #A7B8A8;
-        color: white;
-        border-radius: 8px;
-        padding: 5px 10px;
-        text-decoration: none;
-    }
-
-    .btn-delete {
-        background-color: #B97A7A;
-        color: white;
-        border-radius: 8px;
-        padding: 5px 10px;
-        text-decoration: none;
-    }
-
-    thead {
-        background-color: #D8B4A0;
-        color: white;
-    }
+body{background-color:#F4F1EE;color:#4A4A4A}.morandi-card{background:#fff;border-radius:18px;padding:25px;box-shadow:0 6px 18px rgba(0,0,0,.08);margin-bottom:25px}.title{color:#6B7A75;font-weight:bold}.btn-morandi{background:#D8B4A0;color:white;border:none;border-radius:10px;padding:8px 16px;text-decoration:none}.btn-morandi:hover{background:#C59B88;color:white}.btn-edit{background:#A7B8A8;color:white;border-radius:8px;padding:5px 10px;text-decoration:none}.btn-delete{background:#B97A7A;color:white;border:0;border-radius:8px;padding:5px 10px}thead{background:#D8B4A0;color:white}.inline-delete{display:inline}
 </style>
-
 <div class="container mt-5">
-
-    <div class="morandi-card">
-        <h2 class="title">FitLife 飲食紀錄</h2>
-        <p>統計每日飲食內容、餐別與熱量攝取。</p>
-
-        <a href="/MealRecords/Create" class="btn-morandi">新增飲食紀錄</a>
-        <a href="/Home/Index" class="btn-morandi">回主畫面</a>
-    </div>
-
-    <div class="morandi-card">
-        <h4 class="title">飲食統計表</h4>
-        <form method="get" action="/MealRecords/Index" class="mb-3">
-    <input type="text"
-           name="searchText"
-           value="@ViewBag.SearchText"
-           class="form-control"
-           placeholder="輸入食物名稱、餐別或備註查詢" />
-
-    <br />
-
-    <button type="submit" class="btn-morandi">查詢</button>
-    <a href="/MealRecords" class="btn-morandi">清除查詢</a>
-</form>
-        <table class="table table-bordered table-hover">
-            <thead>
-                <tr>
-                    <th>日期</th>
-                    <th>食物名稱</th>
-                    <th>餐別</th>
-                    <th>熱量</th>
-                    <th>備註</th>
-                    <th>功能</th>
-                </tr>
-            </thead>
-
-            <tbody>
-                @foreach (var item in Model)
-                {
-                    <tr>
-                        <td>@item.MealDate</td>
-                        <td>@item.MealName</td>
-                        <td>@item.MealType</td>
-                        <td>@item.Calories kcal</td>
-                        <td>@item.Note</td>
-                        <td>
-                            <a href="/MealRecords/Edit/@item.Id" class="btn-edit">編輯</a>
-                            <a href="/MealRecords/Delete/@item.Id" class="btn-delete">刪除</a>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-       
-        <h5 class="mt-4">
-            總攝取熱量：
-            <strong>@Model.Sum(x => x.Calories) kcal</strong>
-        </h5>
-        <a href="/MealRecords?pageNumber=@(ViewBag.Page - 1)">上一頁</a>
-        <a href="/MealRecords?pageNumber=@(ViewBag.Page + 1)">下一頁</a>
-    </div>
+ <div class="morandi-card"><h2 class="title">FitLife 飲食紀錄</h2><p>查詢飲食內容、餐別與本頁熱量小計。</p><a asp-action="Create" class="btn-morandi">新增飲食紀錄</a> <a href="/Home/Index" class="btn-morandi">回主畫面</a></div>
+ <div class="morandi-card">
+  <h4 class="title">飲食統計表</h4>
+  <form asp-action="Index" method="get" class="mb-3"><input type="text" name="searchText" value="@ViewBag.SearchText" class="form-control" placeholder="輸入食物名稱、餐別或備註查詢" /><br /><button type="submit" class="btn-morandi">查詢</button> <a asp-action="Index" class="btn-morandi">清除查詢</a></form>
+  <table class="table table-bordered table-hover"><thead><tr><th>日期</th><th>食物名稱</th><th>餐別</th><th>熱量</th><th>備註</th><th>功能</th></tr></thead><tbody>
+  @foreach(var item in Model)
+  {
+   <tr><td>@item.MealDate?.ToString("yyyy-MM-dd")</td><td>@item.MealName</td><td>@item.MealType</td><td>@item.Calories kcal</td><td>@item.Note</td><td><a asp-action="Edit" asp-route-id="@item.Id" class="btn-edit">編輯</a> <form asp-action="Delete" asp-route-id="@item.Id" method="post" class="inline-delete"><button type="submit" class="btn-delete" data-testid="delete-meal-@item.Id">刪除</button></form></td></tr>
+  }
+  </tbody></table>
+  <h5 class="mt-4">本頁攝取熱量：<strong>@Model.Sum(x => (long)(x.Calories ?? 0)) kcal</strong></h5>
+  <nav aria-label="飲食紀錄分頁">
+  @if(ViewBag.Page > 1) { <a asp-action="Index" asp-route-pageNumber="@(ViewBag.Page - 1)" asp-route-searchText="@ViewBag.SearchText">上一頁</a> }
+  else { <span aria-disabled="true">上一頁</span> }
+  <span>第 @ViewBag.Page / @ViewBag.TotalPages 頁</span>
+  @if(ViewBag.Page < ViewBag.TotalPages) { <a asp-action="Index" asp-route-pageNumber="@(ViewBag.Page + 1)" asp-route-searchText="@ViewBag.SearchText">下一頁</a> }
+  else { <span aria-disabled="true">下一頁</span> }
+  </nav>
+ </div>
 </div>

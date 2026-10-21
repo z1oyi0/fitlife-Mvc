@@ -1,24 +1,13 @@
-﻿<div class="container mt-5">
+<div class="container mt-5">
     <div class="card p-4 shadow-sm">
         <h2>FitLife 登入</h2>
-
-        <p>測試帳號：admin</p>
-        <p>測試密碼：1234</p>
-
-        <form method="post">
-            <div class="mb-3">
-                <label>帳號</label>
-                <input type="text" name="username" class="form-control" />
-            </div>
-
-            <div class="mb-3">
-                <label>密碼</label>
-                <input type="password" name="password" class="form-control" />
-            </div>
-
+        <p>本機課程示範。請使用開發環境設定的帳號與密碼。</p>
+        <form asp-controller="Login" asp-action="Index" method="post">
+            <input type="hidden" name="returnUrl" value="@ViewBag.ReturnUrl" />
+            <div class="mb-3"><label for="username">帳號</label><input id="username" type="text" name="username" class="form-control" autocomplete="username" required /></div>
+            <div class="mb-3"><label for="password">密碼</label><input id="password" type="password" name="password" class="form-control" autocomplete="current-password" required /></div>
             <button type="submit" class="btn btn-primary">登入</button>
         </form>
-
-        <p style="color:red">@ViewBag.Error</p>
+        <p class="text-danger" role="alert">@ViewBag.Error</p>
     </div>
 </div>

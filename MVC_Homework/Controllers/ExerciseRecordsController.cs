@@ -1,86 +1,69 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using MVC_Homework.Models;
-using System.ComponentModel.DataAnnotations.Schema;
-using System.Linq;
 
-namespace MVC_Homework.Controllers
+namespace MVC_Homework.Controllers;
+
+[Authorize]
+public class ExerciseRecordsController : Controller
 {
-    [Table("TableExerciseRecords1132024")]
-    public class ExerciseRecordsController : Controller
+    private readonly FitLifeDbContext _context;
+    public ExerciseRecordsController(FitLifeDbContext context) => _context = context;
+
+    [HttpGet]
+    public IActionResult Index(string? searchText)
     {
-        private readonly FitLifeDbContext _context;
-        private bool IsLogin()
-        {
-            return HttpContext.Session.GetString("User") != null;
-        }
-        public ExerciseRecordsController(FitLifeDbContext context)
-        {
-            _context = context;
-        }
+        var result = _context.ExerciseRecords.AsNoTracking().AsQueryable();
+        if (!string.IsNullOrEmpty(searchText))
+            result = result.Where(x => (x.ExerciseName != null && x.ExerciseName.Contains(searchText))
+                || (x.Note != null && x.Note.Contains(searchText)));
+        ViewBag.SearchText = searchText;
+        return View(result.OrderBy(x => x.Id).ToList());
+    }
 
-        public IActionResult Index(string searchText)
-        {
-            var result = _context.ExerciseRecords.AsQueryable();
+    [HttpGet]
+    public IActionResult Create() => View(new ExerciseRecord());
 
-            if (!string.IsNullOrEmpty(searchText))
-            {
-                result = result.Where(x =>
-                    (x.ExerciseName != null && x.ExerciseName.Contains(searchText)) ||
-                    (x.Note != null && x.Note.Contains(searchText))
-                );
-            }
+    [HttpPost]
+    public IActionResult Create([Bind("ExerciseName,ExerciseDate,Duration,Calories,Note")] ExerciseRecord record)
+    {
+        if (!ModelState.IsValid) { Response.StatusCode = 400; return View(record); }
+        _context.ExerciseRecords.Add(record);
+        _context.SaveChanges();
+        return RedirectToAction(nameof(Index));
+    }
 
-            ViewBag.SearchText = searchText;
+    [HttpGet]
+    public IActionResult Edit(int id)
+    {
+        var record = _context.ExerciseRecords.Find(id);
+        return record == null ? NotFound() : View(record);
+    }
 
-            return View(result.ToList());
-        }
+    [HttpPost]
+    public IActionResult Edit([FromRoute] int id, [Bind("Id,ExerciseName,ExerciseDate,Duration,Calories,Note")] ExerciseRecord input)
+    {
+        if (id != input.Id) return BadRequest("紀錄編號不一致。");
+        var record = _context.ExerciseRecords.Find(id);
+        if (record == null) return NotFound();
+        if (!ModelState.IsValid) { Response.StatusCode = 400; return View(input); }
+        record.ExerciseName = input.ExerciseName;
+        record.ExerciseDate = input.ExerciseDate;
+        record.Duration = input.Duration;
+        record.Calories = input.Calories;
+        record.Note = input.Note;
+        _context.SaveChanges();
+        return RedirectToAction(nameof(Index));
+    }
 
-        public IActionResult Create()
-        {
-            return View();
-        }
-
-        [HttpPost]
-        public IActionResult Create(ExerciseRecord record)
-        {
-            _context.ExerciseRecords.Add(record);
-            _context.SaveChanges();
-
-            return RedirectToAction("Index");
-        }
-
-        public IActionResult Edit(int id)
-        {
-            var record = _context.ExerciseRecords.Find(id);
-
-            if (record == null)
-            {
-                return RedirectToAction("Index");
-            }
-
-            return View(record);
-        }
-
-        [HttpPost]
-        public IActionResult Edit(ExerciseRecord record)
-        {
-            _context.ExerciseRecords.Update(record);
-            _context.SaveChanges();
-
-            return RedirectToAction("Index");
-        }
-
-        public IActionResult Delete(int id)
-        {
-            var record = _context.ExerciseRecords.Find(id);
-
-            if (record != null)
-            {
-                _context.ExerciseRecords.Remove(record);
-                _context.SaveChanges();
-            }
-
-            return RedirectToAction("Index");
-        }
+    [HttpPost]
+    public IActionResult Delete(int id)
+    {
+        var record = _context.ExerciseRecords.Find(id);
+        if (record == null) return NotFound();
+        _context.ExerciseRecords.Remove(record);
+        _context.SaveChanges();
+        return RedirectToAction(nameof(Index));
     }
 }

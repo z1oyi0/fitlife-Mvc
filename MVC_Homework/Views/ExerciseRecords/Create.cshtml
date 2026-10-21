@@ -1,30 +1,11 @@
-﻿@model MVC_Homework.Models.ExerciseRecord
-
+@model MVC_Homework.Models.ExerciseRecord
 <h2>新增健身紀錄</h2>
-
-<form method="post">
-    <p>運動名稱：</p>
-    <input type="text" name="ExerciseName" />
-
-    <p>運動日期：</p>
-    <input type="date" name="ExerciseDate" />
-
-    <p>運動時間：</p>
-    <input type="number" name="Duration" />
-
-    <p>消耗熱量：</p>
-    <input type="number" name="Calories" />
-
-    <p>備註：</p>
-    <input type="text" name="Note" />
-
-    <br /><br />
-
-    <button type="submit">新增</button>
+<form asp-action="Create" method="post">
+ <div asp-validation-summary="All" class="text-danger" role="alert"></div>
+ <p><label asp-for="ExerciseName">運動名稱</label><input asp-for="ExerciseName" class="form-control" /></p>
+ <p><label asp-for="ExerciseDate">運動日期</label><input asp-for="ExerciseDate" type="date" asp-format="{0:yyyy-MM-dd}" class="form-control" /></p>
+ <p><label asp-for="Duration">運動時間（分鐘）</label><input asp-for="Duration" type="number" min="0" step="1" class="form-control" /></p>
+ <p><label asp-for="Calories">消耗熱量</label><input asp-for="Calories" type="number" min="0" step="1" class="form-control" /><span asp-validation-for="Calories" class="text-danger"></span></p>
+ <p><label asp-for="Note">備註</label><input asp-for="Note" class="form-control" /></p>
+ <button type="submit" class="btn btn-success">新增</button> <a asp-action="Index" class="btn btn-secondary">回健身紀錄列表</a>
 </form>
-
-<br />
-
-<a href="/ExerciseRecords">
-    <button type="button">回健身紀錄列表</button>
-</a>
