@@ -1,0 +1,120 @@
+name: FitLife isolated verification
+
+on:
+  push:
+    branches: [verification/fitlife-cleanup-20261021]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+      DOTNET_NOLOGO: '1'
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://127.0.0.1:5080
+    steps:
+      - name: Checkout verification branch
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Install .NET 8 SDK
+        id: sdk
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9
+        with:
+          dotnet-version: '8.0.x'
+      - name: Select installed SDK
+        env:
+          SDK_VERSION: ${{ steps.sdk.outputs.dotnet-version }}
+        run: |
+          python3 - <<'PY'
+          import json, os
+          with open('global.json', 'w') as f:
+              json.dump({'sdk': {'version': os.environ['SDK_VERSION']}}, f)
+          PY
+          dotnet --info
+      - name: Restore original solution
+        run: dotnet restore MVC_Homework.sln
+      - name: Build original solution and Razor views
+        run: dotnet build MVC_Homework.sln --configuration Release --no-restore
+      - name: Start original app and exercise HTTP endpoints
+        shell: bash
+        run: |
+          set -euo pipefail
+          LOG="$RUNNER_TEMP/fitlife-startup.log"
+          dotnet run --project MVC_Homework/MVC_Homework.csproj --configuration Release --no-build --no-launch-profile > "$LOG" 2>&1 &
+          APP_PID=$!
+          trap 'kill "$APP_PID" 2>/dev/null || true; echo "--- Application log ---"; cat "$LOG"' EXIT
+          python3 - <<'PY'
+          import http.cookiejar, json, os, time, urllib.error, urllib.parse, urllib.request
+          from pathlib import Path
+
+          class NoRedirect(urllib.request.HTTPRedirectHandler):
+              def redirect_request(self, req, fp, code, msg, headers, newurl):
+                  return None
+
+          jar = http.cookiejar.CookieJar()
+          client = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(jar), NoRedirect())
+          base = 'http://127.0.0.1:5080'
+          checks = []
+
+          def request(path, data=None):
+              body = urllib.parse.urlencode(data).encode() if data is not None else None
+              req = urllib.request.Request(base + path, data=body)
+              try:
+                  with client.open(req, timeout=5) as response:
+                      return response.status, response.headers, response.read().decode('utf-8', 'replace')
+              except urllib.error.HTTPError as error:
+                  return error.code, error.headers, error.read().decode('utf-8', 'replace')
+
+          ready = False
+          for _ in range(30):
+              try:
+                  status, headers, body = request('/Login/Index')
+                  ready = True
+                  break
+              except (urllib.error.URLError, TimeoutError, ConnectionError):
+                  time.sleep(1)
+          if not ready:
+              raise SystemExit('FAIL: original application did not accept HTTP requests within the startup window; inspect application log.')
+
+          def expect(name, path, expected, data=None, contains=None):
+              status, headers, body = request(path, data)
+              ok = status == expected and (contains is None or contains in body)
+              checks.append({'name': name, 'status': status, 'expected': expected, 'passed': ok})
+              print(('PASS' if ok else 'FAIL') + ': ' + name + ', HTTP ' + str(status))
+              if not ok:
+                  Path(os.environ['RUNNER_TEMP'], 'failed-response.txt').write_text(body)
+              return status, headers, body
+
+          expect('Login page renders', '/Login/Index', 200, contains='form')
+          expect('Static CSS is served', '/css/site.css', 200)
+          expect('Invalid login stays on login page', '/Login/Index', 200,
+                 {'username': 'invalid-ci-user', 'password': 'invalid-ci-password'})
+          # These are existing demo credentials in the course source, not production secrets.
+          expect('Demo login redirects', '/Login/Index', 302,
+                 {'username': 'admin', 'password': '1234'})
+          expect('Home page renders', '/Home/Index', 200)
+          expect('Meal create form renders', '/MealRecords/Create', 200)
+          expect('Exercise create form renders', '/ExerciseRecords/Create', 200)
+          expect('Logout redirects', '/Login/Logout', 302)
+          Path(os.environ['RUNNER_TEMP'], 'fitlife-smoke-results.json').write_text(json.dumps(checks, indent=2))
+          print('Database CRUD, SQL connectivity, and browser Chart.js rendering are NOT covered by these smoke tests.')
+          if not all(item['passed'] for item in checks):
+              raise SystemExit(1)
+          PY
+      - name: Record verification scope
+        if: always()
+        run: |
+          echo '## Scope' >> "$GITHUB_STEP_SUMMARY"
+          echo '- Unmodified application code; isolated verification branch only.' >> "$GITHUB_STEP_SUMMARY"
+          echo '- Restore, Release compilation, Razor compilation, startup and HTTP smoke checks.' >> "$GITHUB_STEP_SUMMARY"
+          echo '- No production credentials or database connections used.' >> "$GITHUB_STEP_SUMMARY"
+          echo '- Database CRUD and browser chart rendering are not verified.' >> "$GITHUB_STEP_SUMMARY"
+          if [ -f "$RUNNER_TEMP/fitlife-smoke-results.json" ]; then
+            cat "$RUNNER_TEMP/fitlife-smoke-results.json" >> "$GITHUB_STEP_SUMMARY"
+          fi
